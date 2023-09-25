@@ -11,7 +11,7 @@ def create_map(cities, map_name="city_map.html"):
     center_lng = sum(coord[1] for coord in coordinates) / len(coordinates)
 
     # Create a base map
-    m = folium.Map(location=[center_lat, center_lng], zoom_start=3)
+    m = folium.Map(location=[center_lat, center_lng], zoom_start=6)
 
     # Add markers for each city to the map
     for city in cities:
@@ -23,6 +23,6 @@ def create_map(cities, map_name="city_map.html"):
 
     folium.PolyLine(locations=coordinates, color='blue').add_to(m)
 
-    m.save(f"maps/{map_name}")  # Save the map to an HTML file
+    m.save(f"{map_name}")  # Save the map to an HTML file
 
     print("\033[32mSuccessfully created the map\033[0m")
