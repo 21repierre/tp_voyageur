@@ -61,32 +61,46 @@ class Metropolis:
     def __init__(self, villes, N):
         self.N = N
         self.villes = villes
-        self.T = 1000
+        self.T = N // 1000
+        self.baseT = self.N * 10
 
     def genT(self, n):
-        #self.T = 1 / (n + 1) ** (1 / 2)
-        self.T *= 0.9
+        # self.T = 1 / (n + 1) ** (1 / 2) # Tinit=1
+        # self.T *= 0.9  # Tinit = N//1000
+        # self.T = (10 ** 7 * abs(np.cos(n)) + 10 ** -5) / n
+        self.T = (self.baseT * np.cos(n) + self.baseT + 10 ** - 9) / n
         return self.T
 
     def run(self):
-        best = None
-        best_distance = math.inf
         lenV = len(self.villes)
-        X = [x for x in self.villes]
+        # X = [x for x in self.villes]
+        XS = [[[x for x in self.villes], 0], [[x for x in self.villes], 0]]
+        XS[0][1] = distanceChemin(XS[0][0])
+        X = 0
+        best = XS[0][0]
+        best_distance = XS[0][1]
 
         for n in trange(self.N):
-            i = X
-            j = [x for x in X]
+            i = XS[X][0]
+            j = XS[(X + 1) % 2][0]
+            # j = [x for x in X]
             t1, t2 = random.randrange(lenV), random.randrange(lenV)
             while t1 == t2:
                 t2 = random.randrange(lenV)
             j[t1], j[t2] = j[t2], j[t1]
             dj = distanceChemin(j)
-            rho = np.exp((distanceChemin(i) - dj) / self.genT(n))
+            # rho = np.exp((distanceChemin(i) - dj) / self.genT(n))
+            rho = np.exp((XS[X][1] - dj) / self.genT(n))
             if rho >= 1:
-                X = j
+                i[t1], i[t2] = i[t2], i[t1]
+                X = (X + 1) % 2
+                XS[X][1] = dj
             elif random.random() < rho:
-                X = j
+                i[t1], i[t2] = i[t2], i[t1]
+                X = (X + 1) % 2
+                XS[X][1] = dj
+            else:
+                j[t1], j[t2] = j[t2], j[t1]
             if dj <= best_distance:
                 best = j
                 best_distance = dj
