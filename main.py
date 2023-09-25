@@ -11,7 +11,7 @@ from tqdm import tqdm, trange
 
 import mapping
 
-T_RAYON = 6373.0
+T_RAYON = 6371
 ALL_VILLES = []
 DISTANCES = None
 
@@ -64,11 +64,16 @@ class Metropolis:
         self.T = N // 1000
         self.baseT = self.N * 10
 
+        # self.sigma = 1.5
+        # self.denom = self.sigma * np.sqrt(2 * np.pi)
+        # self.mu = self.N // 3
+
     def genT(self, n):
         # self.T = 1 / (n + 1) ** (1 / 2) # Tinit=1
         # self.T *= 0.9  # Tinit = N//1000
-        # self.T = (10 ** 7 * abs(np.cos(n)) + 10 ** -5) / n
-        self.T = (self.baseT * np.cos(n) + self.baseT + 10 ** - 9) / n
+        self.T = (10 ** 7 * abs(np.cos(n)) + 10 ** -5) / n
+        # self.T = (self.baseT * np.cos(n) + self.baseT + 10 ** - 12) / n
+        # self.T = self.N * np.exp(- (n - self.mu) ** 2 / (2 * self.sigma ** 2)) / self.denom
         return self.T
 
     def run(self):
@@ -101,8 +106,8 @@ class Metropolis:
                 XS[X][1] = dj
             else:
                 j[t1], j[t2] = j[t2], j[t1]
-            if dj <= best_distance:
-                best = j
+            if dj < best_distance:
+                best = [x for x in j]
                 best_distance = dj
         return best, best_distance
 
@@ -134,14 +139,32 @@ def parseVilles(limit=-1):
             DISTANCES[j, i] = DISTANCES[i, j]
 
 
+currentBest = "1695645023"
+
+
+def loadSave(name):
+    f = open(f"runs/{name}/result.txt", 'r')
+    che = f.readlines()[0].split(",")
+    chemin = []
+    for v in che:
+        for ville in ALL_VILLES:
+            if ville.nom == v.replace('\n', ''):
+                chemin.append(ville)
+    return chemin
+
+
 def main():
     parseVilles()
     run = int(time.time())
     N = 10 ** 7
     os.makedirs(f"runs/{run}", exist_ok=True)
     mapping.create_map(ALL_VILLES, "debug.html")
-
-    best = Metropolis(ALL_VILLES, N).run()
+    print(distanceChemin(ALL_VILLES))
+    lastBest = loadSave(currentBest)
+    print(','.join([x.nom for x in lastBest]))
+    print(len(lastBest))
+    print(distanceChemin(lastBest))
+    best = Metropolis(lastBest, N).run()
     for ville in best[0]:
         print(ville, end=" / ")
     print(f"Distance: {round(best[1], 2)}km")
