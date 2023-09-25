@@ -64,16 +64,19 @@ class Metropolis:
         self.T = N // 1000
         self.baseT = self.N * 10
 
-        # self.sigma = 1.5
-        # self.denom = self.sigma * np.sqrt(2 * np.pi)
-        # self.mu = self.N // 3
+        self.sigma = 2
+        self.denom = self.sigma * np.sqrt(2 * np.pi)
+        self.mu = self.N // 2
+        self.cassageRate = N // 100
+        self.cassageEpsilon = 10 ** -3
 
     def genT(self, n):
         # self.T = 1 / (n + 1) ** (1 / 2) # Tinit=1
         # self.T *= 0.9  # Tinit = N//1000
-        self.T = (10 ** 7 * abs(np.cos(n)) + 10 ** -5) / n
+        # self.T = (10 ** 7 * abs(np.cos(n)) + 10 ** -5) / n
         # self.T = (self.baseT * np.cos(n) + self.baseT + 10 ** - 12) / n
-        # self.T = self.N * np.exp(- (n - self.mu) ** 2 / (2 * self.sigma ** 2)) / self.denom
+        # self.T = self.baseT * np.exp(- (n - self.mu) ** 2 / (2 * self.sigma ** 2)) / self.denom
+        self.T = self.baseT / (n + 1) ** (1 / 2)
         return self.T
 
     def run(self):
@@ -84,6 +87,8 @@ class Metropolis:
         X = 0
         best = XS[0][0]
         best_distance = XS[0][1]
+        lastCassageDistance = best_distance
+        cassageReset = 0
 
         for n in trange(self.N):
             i = XS[X][0]
@@ -95,7 +100,7 @@ class Metropolis:
             j[t1], j[t2] = j[t2], j[t1]
             dj = distanceChemin(j)
             # rho = np.exp((distanceChemin(i) - dj) / self.genT(n))
-            rho = np.exp((XS[X][1] - dj) / self.genT(n))
+            rho = np.exp((XS[X][1] - dj) / self.genT(n - cassageReset))
             if rho >= 1:
                 i[t1], i[t2] = i[t2], i[t1]
                 X = (X + 1) % 2
@@ -109,6 +114,13 @@ class Metropolis:
             if dj < best_distance:
                 best = [x for x in j]
                 best_distance = dj
+
+            if n % self.cassageRate == 0:
+                if lastCassageDistance - XS[X][1] < self.cassageEpsilon:
+                    print("Plateau", n)
+                    cassageReset = n
+                lastCassageDistance = XS[X][1]
+
         return best, best_distance
 
 
@@ -139,7 +151,7 @@ def parseVilles(limit=-1):
             DISTANCES[j, i] = DISTANCES[i, j]
 
 
-currentBest = "1695645023"
+currentBest = "1695650292"
 
 
 def loadSave(name):
@@ -159,11 +171,9 @@ def main():
     N = 10 ** 7
     os.makedirs(f"runs/{run}", exist_ok=True)
     mapping.create_map(ALL_VILLES, "debug.html")
-    print(distanceChemin(ALL_VILLES))
+
     lastBest = loadSave(currentBest)
-    print(','.join([x.nom for x in lastBest]))
-    print(len(lastBest))
-    print(distanceChemin(lastBest))
+    random.shuffle(lastBest)
     best = Metropolis(lastBest, N).run()
     for ville in best[0]:
         print(ville, end=" / ")
