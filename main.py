@@ -6,6 +6,7 @@ import random
 import time
 from itertools import permutations
 
+from matplotlib import pyplot as plt
 from tqdm import tqdm, trange
 
 import mapping
@@ -57,6 +58,18 @@ class Ville:
 
         return T_RAYON * b
 
+    def __eq__(self, other: Ville) -> bool:
+        try:
+            return (self.id, self.nom) == (other.id, other.nom)
+        except AttributeError:
+            return NotImplemented
+
+    def __hash__(self):
+        return hash((self.id, self.nom))
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class Exhaustive:
     """
@@ -97,11 +110,13 @@ class Metropolis:
         self.N = N
         self.villes = villes
         self.Ts: list[genT] = [linearT(N), bigCos(N), cosAbs(N), cloche(N)]
-        self.T = 0
+        self.T = -1
 
-        self.plateauThreshold = N // 50000
+        self.debugDist = [0] * self.N
+
+        self.plateauThreshold = N // 5000
         self.plateauEpsilon = 10
-        self.nbPermuCassage = 5
+        self.nbPermuCassage = 3
 
     def genT(self, n):
         return self.Ts[self.T].next(n)
@@ -122,6 +137,7 @@ class Metropolis:
 
         try:
             for n in trange(self.N):
+                self.debugDist[n] = XS[0][1]
                 i = XS[0][0]
                 j = XS[1][0]
 
@@ -166,11 +182,11 @@ class Metropolis:
                     best_distance = dj
 
                 # Mecanisme de cassage lors de l'atteinte d'un plateau dans les distances (uniquement lors d'un T lineaire)
-                if plateauCount >= self.plateauThreshold and self.T == 0:
+                if plateauCount >= self.plateauThreshold and self.T >= 0:
                     plateauCount = 0
-                    print("Plateau", n, dj - XS[0][1])
-                    cassageReset = n // 3 if n / self.N < 0.7 else 3 * n // 4
-                    cassageReset = n
+                    # print("Plateau", n, dj - XS[0][1])
+                    cassageReset = 3 * n // 5 if n / self.N < 0.7 else 5 * n // 6
+                    # cassageReset = n
                     for _ in range(self.nbPermuCassage):
                         p1, p2 = random.randrange(lenV), random.randrange(lenV)
                         while p1 == p2:
@@ -234,7 +250,7 @@ def loadSave(name):
 
 
 currentBest = "1695719552"
-N = 2 * 10 ** 7
+N = 10 ** 7
 
 
 def main():
@@ -248,14 +264,17 @@ def main():
 
     # Charge la meilleure run
     lastBest = loadSave(currentBest)
+    print(lastBest)
     print(f"Starting from {currentBest} at {distanceChemin(lastBest)}km.")
-    random.shuffle(lastBest)
+    # random.shuffle(lastBest)
 
     # Calcul un meilleur chemin avec Metropolis
-    best = Metropolis(lastBest, N).run()
+    m = Metropolis(lastBest, N)
+    best = m.run()
     for ville in best[0]:
         print(ville, end=" / ")
-    print(f"Distance: {round(best[1], 2)}km")
+    print(f"\nDistance: {best[1]}km")
+    print(f"Meme chemin: {best == lastBest}")
 
     # Enregistre la run + une map de la run
     mapping.create_map(list(best[0]), f"runs/{run}/map.html")
@@ -264,6 +283,11 @@ def main():
     result.write(f"\n{best[1]}")
     result.write(f"\n{N}")
     result.close()
+
+    Xs = [i for i in range(N)]
+    Ys = m.debugDist
+    plt.plot(Xs, Ys)
+    plt.show()
 
 
 if __name__ == '__main__':

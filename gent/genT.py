@@ -40,9 +40,15 @@ class linearT(genT):
 class cloche(genT):
     def __init__(self, N):
         super().__init__(N)
-        self.sigma = 2
+        self.sigma = 10**7
         self.denom = self.sigma * np.sqrt(2 * np.pi)
         self.mu = self.N // 2
+        self.mult *= 40
 
     def next(self, n):
-        return self.mult * np.exp(- (n - self.mu) ** 2 / (2 * self.sigma ** 2)) / self.denom
+        expIn = np.float128(- (n - self.mu) ** 2 / (2 * self.sigma ** 2))
+        try:
+            return self.mult * np.exp(expIn) / self.denom
+        except FloatingPointError:
+            print("error", expIn)
+            return 10 ** -9
