@@ -35,6 +35,13 @@ class linearT(genT):
 
     def next(self, n):
         return self.mult / (n + 1)
+    
+class alternate(genT):
+    def __init__(self, N):
+        super().__init__(N)
+    
+    def next(self, n):
+        return ((1 - (n//10000)%2) * self.mult)/(n+1) + 10 ** -9
 
 
 class cloche(genT):
